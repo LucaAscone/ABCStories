@@ -5,10 +5,25 @@
 
     <header class="dashboard-header">
       <div class="header-titles">
-        <h1 class="title">Le mie Storie</h1>
-        <p class="subtitle">{{ stories.length }} {{ stories.length === 1 ? 'storia scritta' : 'storie scritte' }}</p>
+        <h1 class="title">{{ activeTab === 'stories' ? 'Le mie Storie' : 'Le mie Serie' }}</h1>
+        <p class="subtitle" *ngIf="activeTab === 'stories'">
+          {{ stories.length }} {{ stories.length === 1 ? 'storia scritta' : 'storie scritte' }}
+        </p>
+        <p class="subtitle" *ngIf="activeTab === 'series'">
+          {{ seriesList.length }} {{ seriesList.length === 1 ? 'serie creata' : 'serie create' }}
+        </p>
       </div>
-      <button class="btn-new-story" (click)="createNewStory()">
+
+      <div class="header-tab-nav glass-core">
+        <button class="tab-nav-item" [class.active]="activeTab === 'stories'" (click)="setActiveTab('stories')">
+          Opere
+        </button>
+        <button class="tab-nav-item" [class.active]="activeTab === 'series'" (click)="setActiveTab('series')">
+          Serie
+        </button>
+      </div>
+
+      <button class="btn-new-story" *ngIf="activeTab === 'stories'" (click)="createNewStory()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2.5" class="plus-icon">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -16,9 +31,19 @@
         </svg>
         <span>Nuova storia</span>
       </button>
+
+      <button class="btn-new-story" *ngIf="activeTab === 'series'" (click)="openCreateSeriesModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" class="plus-icon">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nuova serie</span>
+      </button>
     </header>
 
-    <div class="stories-grid-canvas" *ngIf="!loading">
+    <!-- STORIES VIEW -->
+    <div class="stories-grid-canvas" *ngIf="!loading && activeTab === 'stories'">
 
       <div class="premium-story-card glass-core" *ngFor="let story of stories" (click)="goToEditor(story.id)">
 
@@ -106,5 +131,135 @@
 
     </div>
 
+    <!-- SERIES VIEW -->
+    <div class="stories-grid-canvas" *ngIf="!loading && activeTab === 'series'">
+
+      <div class="premium-story-card glass-core" *ngFor="let series of seriesList">
+        <div class="story-details-box">
+          <div class="story-title-meta-row">
+            <h3 class="story-headline-title">{{ series.name }}</h3>
+          </div>
+          <p class="story-sub-attributes">
+            {{ series.stories?.length || 0 }} {{ (series.stories?.length === 1) ? 'libro' : 'libri' }}
+          </p>
+          <p class="story-synopsis-preview" *ngIf="series.description">
+            {{ series.description | slice:0:100 }}{{ series.description.length > 100 ? '...' : '' }}
+          </p>
+
+          <!-- Horizontal Covers Preview -->
+          <div class="series-covers-preview-row" *ngIf="series.stories && series.stories.length > 0">
+            <div class="mini-cover-wrapper" *ngFor="let s of sliceStories(series.stories, 0, 5)">
+              <img *ngIf="asAny(s).image_url" [src]="asAny(s).image_url" alt="Cover" class="mini-cover-img">
+              <div *ngIf="!asAny(s).image_url" class="mini-cover-placeholder">
+                <span>{{ sliceTitle(asAny(s).title) | uppercase }}</span>
+              </div>
+              <span class="mini-order-num">{{ asAny(s).order_index }}</span>
+            </div>
+            <div class="mini-cover-more" *ngIf="series.stories.length > 5">
+              +{{ series.stories.length - 5 }}
+            </div>
+          </div>
+        </div>
+
+        <div class="story-actions-dock">
+          <button class="dock-btn-action btn-preview" title="Modifica" (click)="openEditSeriesModal(series, $event)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            <span>Modifica</span>
+          </button>
+
+          <button class="dock-btn-action btn-delete" title="Elimina" (click)="deleteSeries(series.id, $event)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>Elimina</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-dashboard-state glass-core" *ngIf="seriesList.length === 0">
+        <div class="empty-state-cosmos">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.2" class="cosmos-icon">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </div>
+        <h3>Crea la tua prima serie</h3>
+        <p>Organizza le tue opere in trilogie o sequenze per permettere ai lettori di navigare comodamente capitolo dopo capitolo.</p>
+        <button class="btn-new-story btn-empty-trigger" (click)="openCreateSeriesModal()">Inizia ora</button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- SERIES EDIT / CREATE MODAL -->
+<div class="modal-overlay" *ngIf="showSeriesModal" (click)="closeSeriesModal()">
+  <div class="modal-container glass-core" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>{{ isEditingSeries ? 'Modifica Serie' : 'Nuova Serie' }}</h2>
+      <button class="modal-close-btn" (click)="closeSeriesModal()">✕</button>
+    </header>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="series-name">Nome della Serie</label>
+        <input type="text" id="series-name" [(ngModel)]="seriesForm.name" placeholder="Es. La Saga degli Antichi" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="series-desc">Descrizione (opzionale)</label>
+        <textarea id="series-desc" [(ngModel)]="seriesForm.description" placeholder="Di cosa parla questa serie di libri..." class="form-input form-textarea"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Seleziona i libri da includere</label>
+        <div class="stories-selection-list">
+          <div class="story-select-item" *ngFor="let story of stories" 
+               [class.disabled]="story.status !== 'published'"
+               (click)="story.status === 'published' && toggleStorySelection(story.id)">
+            <input type="checkbox" [disabled]="story.status !== 'published'" [checked]="isStorySelected(story.id)" (click)="$event.stopPropagation(); story.status === 'published' && toggleStorySelection(story.id)">
+            <span class="custom-checkbox"></span>
+            <span class="story-select-title">{{ story.title }}</span>
+            <span class="story-select-status" [class.pub]="story.status === 'published'">{{ story.status === 'published' ? 'pubblicata' : 'bozza' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="seriesForm.storyIds.length > 0">
+        <label>Ordine di lettura</label>
+        <div class="ordered-stories-list">
+          <div class="ordered-story-item" *ngFor="let s of getSelectedStoriesInOrder(); let i = index">
+            <span class="order-num">{{ i + 1 }}</span>
+            <span class="ordered-title">{{ s?.title }}</span>
+            <div class="order-actions">
+              <button class="order-btn" [disabled]="i === 0" (click)="moveStoryUp(i)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+              <button class="order-btn" [disabled]="i === seriesForm.storyIds.length - 1" (click)="moveStoryDown(i)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn-cancel" (click)="closeSeriesModal()">Annulla</button>
+      <button class="btn-save" [disabled]="!seriesForm.name.trim()" (click)="saveSeries()">Salva</button>
+    </footer>
   </div>
 </div>

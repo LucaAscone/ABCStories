@@ -217,3 +217,20 @@ CREATE TABLE IF NOT EXISTS collection_highlights (
   PRIMARY KEY (collection_id, highlight_id)
 );
 
+-- 17. Table: series
+CREATE TABLE IF NOT EXISTS series (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 18. Table: series_stories
+CREATE TABLE IF NOT EXISTS series_stories (
+  series_id UUID NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+  story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  order_index INTEGER NOT NULL,
+  PRIMARY KEY (series_id, story_id)
+);
+

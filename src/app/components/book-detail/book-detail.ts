@@ -259,6 +259,7 @@ export class BookDetail implements OnInit, AfterViewInit, AfterViewChecked, OnDe
       title: s.title ?? '',
       author: s.author_name ?? s.author_id ?? 'Autore sconosciuto',
       author_id: s.author_id,
+      author_avatar: s.author_avatar,
       desc: s.description ?? s.desc ?? '',
       img: s.image_url ?? s.img ?? 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=320&q=80',
       genre: s.genre ?? '',

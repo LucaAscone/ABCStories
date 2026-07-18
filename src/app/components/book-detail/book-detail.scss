@@ -151,7 +151,7 @@ h2 {
 
 .detail-hero {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 4rem;
   margin-bottom: 3rem;
@@ -198,6 +198,9 @@ h2 {
   flex: 1;
   min-width: 0;
   position: relative;
+  max-height: 400px;
+  overflow: visible;
+  justify-content: center;
 
   h1 {
     font-size: clamp(2rem, 4vw, 3.5rem);
@@ -208,6 +211,9 @@ h2 {
   }
 
   @media (max-width: 768px) {
+    max-height: none;
+    overflow: visible;
+    justify-content: flex-start;
     align-items: center;
     text-align: center;
     width: 100%;
@@ -218,6 +224,7 @@ h2 {
 .detail-actions-row {
   display: flex;
   align-items: center;
+  margin-top: 0.5rem;
   gap: 12px;
   width: 100%;
 
@@ -370,6 +377,15 @@ h2 {
   width: fit-content;
 }
 
+.detail-author-wrapper {
+  transition: transform 0.2s, opacity 0.2s;
+  
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+}
+
 .detail-author {
   font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.6);
@@ -381,7 +397,7 @@ h2 {
   line-height: 1.75;
   color: rgba(255, 255, 255, 0.8);
   margin: 0.5rem 0 0;
-  max-height: 145px;
+  max-height: 100px;
   overflow-y: auto;
   padding-right: 6px;
   scrollbar-width: thin;
@@ -1255,16 +1271,27 @@ h2 {
 }
 
 .detail-share-container {
-  position: absolute;
-  top: 0;
-  right: 0;
+  position: relative;
+  flex-shrink: 0;
   z-index: 100;
+}
 
-  @media (max-width: 768px) {
-    position: relative;
-    top: unset;
-    right: unset;
-    margin: 10px auto;
+// Mobile: ripristino layout originale — share button sopra i tag, centrato
+@media (max-width: 768px) {
+  .detail-tags-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .detail-tags-row > div:not(.detail-share-container) {
+    justify-content: center;
+  }
+
+  .detail-share-container {
+    order: -1;
+    margin: 0 auto 4px;
     width: fit-content;
   }
 }

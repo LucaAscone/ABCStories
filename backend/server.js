@@ -208,6 +208,27 @@ const pool = process.env.DATABASE_URL
       );
     `);
     console.log('[DATABASE] Tabella collection_highlights creata o verificata.');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS series (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    console.log('[DATABASE] Tabella series creata o verificata.');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS series_stories (
+        series_id UUID NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+        story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+        order_index INTEGER NOT NULL,
+        PRIMARY KEY (series_id, story_id)
+      );
+    `);
+    console.log('[DATABASE] Tabella series_stories creata o verificata.');
   } catch (err) {
     console.error('[DATABASE ERROR] Errore durante la creazione delle tabelle iniziali:', err);
   }
@@ -679,6 +700,164 @@ app.delete('/api/collections/:id', async (req, res) => {
       return res.status(404).json({ error: 'Collection not found' });
     }
     res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ═══════════════ SERIES ═══════════════
+
+app.get('/api/users/:userId/series', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const seriesRes = await pool.query(
+      'SELECT * FROM series WHERE author_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    const seriesList = [];
+    for (const series of seriesRes.rows) {
+      const storiesRes = await pool.query(
+        `SELECT s.*, u.username as author_name, ss.order_index 
+         FROM series_stories ss 
+         JOIN stories s ON s.id = ss.story_id 
+         JOIN users u ON u.id = s.author_id
+         WHERE ss.series_id = $1
+         ORDER BY ss.order_index ASC`,
+        [series.id]
+      );
+      seriesList.push({
+        ...series,
+        stories: storiesRes.rows
+      });
+    }
+    res.json(seriesList);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/users/:userId/series', async (req, res) => {
+  const { userId } = req.params;
+  const { name, description, storyIds } = req.body;
+  try {
+    const seriesRes = await pool.query(
+      'INSERT INTO series (author_id, name, description) VALUES ($1, $2, $3) RETURNING *',
+      [userId, name, description]
+    );
+    const newSeries = seriesRes.rows[0];
+    
+    if (storyIds && storyIds.length > 0) {
+      for (let i = 0; i < storyIds.length; i++) {
+        await pool.query(
+          'INSERT INTO series_stories (series_id, story_id, order_index) VALUES ($1, $2, $3)',
+          [newSeries.id, storyIds[i], i + 1]
+        );
+      }
+    }
+    
+    const storiesRes = await pool.query(
+      `SELECT s.*, u.username as author_name, ss.order_index 
+       FROM series_stories ss 
+       JOIN stories s ON s.id = ss.story_id 
+       JOIN users u ON u.id = s.author_id
+       WHERE ss.series_id = $1
+       ORDER BY ss.order_index ASC`,
+      [newSeries.id]
+    );
+    
+    res.status(201).json({
+      ...newSeries,
+      stories: storiesRes.rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.put('/api/series/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, description, storyIds } = req.body;
+  try {
+    const seriesRes = await pool.query(
+      'UPDATE series SET name = $1, description = $2 WHERE id = $3 RETURNING *',
+      [name, description, id]
+    );
+    if (seriesRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Series not found' });
+    }
+    const series = seriesRes.rows[0];
+    
+    await pool.query('DELETE FROM series_stories WHERE series_id = $1', [id]);
+    if (storyIds && storyIds.length > 0) {
+      for (let i = 0; i < storyIds.length; i++) {
+        await pool.query(
+          'INSERT INTO series_stories (series_id, story_id, order_index) VALUES ($1, $2, $3)',
+          [id, storyIds[i], i + 1]
+        );
+      }
+    }
+    
+    const storiesRes = await pool.query(
+      `SELECT s.*, u.username as author_name, ss.order_index 
+       FROM series_stories ss 
+       JOIN stories s ON s.id = ss.story_id 
+       JOIN users u ON u.id = s.author_id
+       WHERE ss.series_id = $1
+       ORDER BY ss.order_index ASC`,
+      [id]
+    );
+    
+    res.json({
+      ...series,
+      stories: storiesRes.rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.delete('/api/series/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM series WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Series not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/authors/:authorId/series', async (req, res) => {
+  const { authorId } = req.params;
+  try {
+    const seriesRes = await pool.query(
+      'SELECT * FROM series WHERE author_id = $1 ORDER BY created_at DESC',
+      [authorId]
+    );
+    const seriesList = [];
+    for (const series of seriesRes.rows) {
+      const storiesRes = await pool.query(
+        `SELECT s.*, u.username as author_name, ss.order_index 
+         FROM series_stories ss 
+         JOIN stories s ON s.id = ss.story_id 
+         JOIN users u ON u.id = s.author_id
+         WHERE ss.series_id = $1
+         ORDER BY ss.order_index ASC`,
+        [series.id]
+      );
+      seriesList.push({
+        ...series,
+        stories: storiesRes.rows
+      });
+    }
+    res.json(seriesList);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -2047,6 +2226,7 @@ app.get('/api/stories/:id', async (req, res) => {
               (SELECT COUNT(*) FROM story_likes WHERE story_id = s.id) AS likes_count,
               (SELECT COUNT(*) FROM story_bookmarks WHERE story_id = s.id) AS bookmarks_count,
               u.username AS author_name,
+              u.avatar_url AS author_avatar,
               (SELECT COUNT(*) FROM story_views WHERE story_id = s.id) AS views_count
        FROM stories s
        LEFT JOIN users u ON u.id = s.author_id

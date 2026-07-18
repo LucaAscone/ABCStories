@@ -356,6 +356,28 @@ export class Api {
     return this.http.delete<{ success: boolean }>(`${this.apiUrl}/api/collections/${collectionId}`);
   }
 
+  // ═══════════════ SERIES ═══════════════
+
+  getSeries(userId: string) {
+    return this.http.get<any[]>(`${this.apiUrl}/api/users/${userId}/series`);
+  }
+
+  createSeries(userId: string, data: { name: string, description: string, storyIds?: string[] }) {
+    return this.http.post<any>(`${this.apiUrl}/api/users/${userId}/series`, data);
+  }
+
+  updateSeries(seriesId: string, data: { name: string, description: string, storyIds?: string[] }) {
+    return this.http.put<any>(`${this.apiUrl}/api/series/${seriesId}`, data);
+  }
+
+  deleteSeries(seriesId: string) {
+    return this.http.delete<{ success: boolean }>(`${this.apiUrl}/api/series/${seriesId}`);
+  }
+
+  getAuthorSeries(authorId: string) {
+    return this.http.get<any[]>(`${this.apiUrl}/api/authors/${authorId}/series`);
+  }
+
   // ═══════════════ HIGHLIGHTS ═══════════════
 
   getCommunityHighlights() {

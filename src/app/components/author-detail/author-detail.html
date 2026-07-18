@@ -2,6 +2,7 @@
 
 <div class="author-layout" *ngIf="author">
 
+  <!-- Ambient background sphere animations -->
   <div class="ambient-screen">
     <div class="ambient-sphere glow-1"
       [style.backgroundImage]="'url(' + (author.avatar_url || 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1470&auto=format&fit=crop') + ')'">
@@ -10,7 +11,10 @@
     <div class="ambient-curtain"></div>
   </div>
 
-  <div class="author-dashboard">
+  <!-- ========================================== -->
+  <!-- 1. DESKTOP VIEW LAYOUT                     -->
+  <!-- ========================================== -->
+  <div class="author-dashboard desktop-only">
 
     <aside class="theater-sidebar-pass glass-core">
 
@@ -22,14 +26,12 @@
         <div class="identity-meta">
           <h1 class="author-name">{{ author.username }}</h1>
           <p class="author-handle">{{ author.email }}</p>
-          <div class="identity-badge-text" *ngIf="isFollowing">Autore Seguito</div>
         </div>
       </div>
 
       <div class="pass-biography-area">
         <p class="author-bio" *ngIf="author.bio">{{ author.bio }}</p>
-        <p class="author-bio missing-bio" *ngIf="!author.bio">Questo autore preferisce mantenere un alone di mistero.
-        </p>
+        <p class="author-bio missing-bio" *ngIf="!author.bio">Questo autore preferisce mantenere un alone di mistero.</p>
       </div>
 
       <div class="pass-metrics-dock">
@@ -65,10 +67,16 @@
           <span class="nav-panel-title">Vedi i Seguiti</span>
           <span class="nav-panel-chevron">❯</span>
         </button>
+
+        <button class="nav-glass-button-panel" [class.active]="activeSubView === 'serie'"
+          (click)="activeSubView = 'serie'">
+          <span class="nav-panel-title">Serie dell'Autore</span>
+          <span class="nav-panel-chevron">❯</span>
+        </button>
       </div>
 
       <div class="identity-actions" *ngIf="!isCurrentUser">
-        <button class="action-follow-btn" [class.action-follow-btn--active]="isFollowing" (click)="toggleFollow()">
+        <button class="action-follow-btn glass-btn" [class.action-follow-btn--active]="isFollowing" (click)="toggleFollow()">
           {{ isFollowing ? 'Seguendo' : 'Segui' }}
         </button>
 
@@ -108,6 +116,7 @@
 
     <main class="theater-main-stream">
 
+      <!-- OPERE VIEW -->
       <div class="content-stream-canvas glass-core" *ngIf="activeSubView === 'opere'">
         <section class="stream-section">
           <div class="stream-section-header">
@@ -121,27 +130,23 @@
           </div>
 
           <div class="books-dynamic-grid" *ngIf="filteredStories.length > 0; else noStories">
-            <div class="premium-book-card" *ngFor="let book of displayedStories" [routerLink]="['/book', book.id]">
-              <div class="book-thumbnail-container">
-                <img *ngIf="book.image_url" [src]="book.image_url" [alt]="book.title" loading="lazy" class="book-img" />
+            <div class="book-card" *ngFor="let book of displayedStories; let idx = index" [routerLink]="['/book', book.id]">
+              <div class="book-cover">
+                <img [src]="book.image_url || book.img" [alt]="book.title" [loading]="idx < 4 ? 'eager' : 'lazy'" />
+                <div class="book-spine"></div>
 
                 <div class="action-icon bookmark-icon" [class.active]="interactions.isBookmarked(book.id)"
                   (click)="toggleBookmark(book); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                  </svg>
+                  <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                 </div>
                 <div class="action-icon heart-icon" [class.active]="interactions.isLiked(book.id)"
                   (click)="toggleLike(book); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
+                  <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </div>
               </div>
-              <div class="book-meta-data">
-                <h4 class="book-heading">{{ book.title }}</h4>
-                <span class="book-badge-genre">{{ book.genre || 'Romanzo' }}</span>
+              <div class="book-info">
+                <p class="book-title">{{ book.title }}</p>
+                <p class="book-author" (click)="goToAuthor(book.author_id, $event)" style="cursor: pointer; position: relative; z-index: 2;">{{ book.author_name || author.username }}</p>
               </div>
             </div>
           </div>
@@ -163,33 +168,30 @@
           <h2 class="stream-title mb-large">Le letture consigliate da {{ author.username }}</h2>
 
           <div class="books-dynamic-grid">
-            <div class="premium-book-card" *ngFor="let book of recommendedBooks" [routerLink]="['/book', book.id]">
-              <div class="book-thumbnail-container">
-                <img *ngIf="book.img" [src]="book.img" [alt]="book.title" loading="lazy" class="book-img" />
+            <div class="book-card" *ngFor="let book of recommendedBooks; let idx = index" [routerLink]="['/book', book.id]">
+              <div class="book-cover">
+                <img [src]="book.img || book.image_url" [alt]="book.title" [loading]="idx < 4 ? 'eager' : 'lazy'" />
+                <div class="book-spine"></div>
 
                 <div class="action-icon bookmark-icon" [class.active]="interactions.isBookmarked(book.id)"
                   (click)="toggleBookmark(book); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                  </svg>
+                  <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                 </div>
                 <div class="action-icon heart-icon" [class.active]="interactions.isLiked(book.id)"
                   (click)="toggleLike(book); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
+                  <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </div>
               </div>
-              <div class="book-meta-data">
-                <h4 class="book-heading">{{ book.title }}</h4>
-                <span class="book-badge-genre">{{ book.genre || 'Romanzo' }}</span>
+              <div class="book-info">
+                <p class="book-title">{{ book.title }}</p>
+                <p class="book-author" (click)="goToAuthor(book.author_id, $event)" style="cursor: pointer; position: relative; z-index: 2;">{{ book.author }}</p>
               </div>
             </div>
           </div>
         </section>
       </div>
 
+      <!-- FOLLOWER VIEW -->
       <div class="content-stream-canvas glass-core" *ngIf="activeSubView === 'follower'">
         <section class="stream-section text-center-wrapper">
           <h2 class="stream-title mb-large">Follower</h2>
@@ -228,6 +230,7 @@
         </section>
       </div>
 
+      <!-- SEGUITI VIEW -->
       <div class="content-stream-canvas glass-core" *ngIf="activeSubView === 'seguiti'">
         <section class="stream-section text-center-wrapper">
           <h2 class="stream-title mb-large">Seguiti</h2>
@@ -266,7 +269,290 @@
         </section>
       </div>
 
+      <!-- SERIE VIEW (Redesigned) -->
+      <div class="content-stream-canvas glass-core" *ngIf="activeSubView === 'serie'">
+        <section class="stream-section">
+          <h2 class="stream-title mb-large">Le Serie di {{ author.username }}</h2>
+
+          <div class="premium-series-timeline-container" *ngIf="seriesList.length > 0; else noSeries">
+            <div class="premium-series-timeline-card glass-panel" *ngFor="let ser of seriesList">
+              
+              <!-- Series Metadata Header -->
+              <div class="premium-series-header-info">
+                <div class="series-badge-count">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="book-icon">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                  <span>{{ ser.stories?.length || 0 }} {{ (ser.stories?.length === 1) ? 'libro' : 'libri' }}</span>
+                </div>
+                <h3 class="series-name">{{ ser.name }}</h3>
+                <p class="series-desc" *ngIf="ser.description">{{ ser.description }}</p>
+              </div>
+              
+              <!-- Journey Timeline path -->
+              <div class="premium-series-timeline-track">
+                <div class="timeline-connecting-line"></div>
+                
+                <div class="timeline-story-step" *ngFor="let s of ser.stories; let isLast = last" [routerLink]="['/book', asAny(s).id]">
+                  <div class="timeline-node-accent">
+                    <span class="timeline-step-number">#{{ asAny(s).order_index }}</span>
+                    <div class="timeline-sub-connector" *ngIf="!isLast"></div>
+                  </div>
+                  
+                  <div class="timeline-book-inner-card">
+                    <div class="timeline-book-cover-wrapper">
+                      <img *ngIf="asAny(s).image_url" [src]="asAny(s).image_url" [alt]="asAny(s).title" class="timeline-book-cover">
+                      <div *ngIf="!asAny(s).image_url" class="timeline-book-placeholder">
+                        <span>{{ sliceTitle(asAny(s).title) | uppercase }}</span>
+                      </div>
+                      <div class="timeline-book-spine"></div>
+                    </div>
+                    <div class="timeline-book-detail-meta">
+                      <h4 class="timeline-book-title">{{ asAny(s).title }}</h4>
+                      <span class="timeline-book-action-trigger">Leggi opera ➔</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <ng-template #noSeries>
+            <div class="empty-glass-state">
+              <p>Questo autore non ha ancora creato alcuna serie.</p>
+            </div>
+          </ng-template>
+        </section>
+      </div>
+
     </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. MOBILE VIEW LAYOUT                      -->
+  <!-- ========================================== -->
+  <div class="author-dashboard-mobile mobile-only">
+    
+    <!-- Mobile Hero Header Card -->
+    <div class="mobile-hero-card glass-core">
+      <!-- Profile Header Info -->
+      <div class="mobile-profile-main">
+        <div class="mobile-avatar-frame">
+          <img *ngIf="author.avatar_url" [src]="author.avatar_url" alt="Avatar" class="mobile-avatar-image" />
+          <div *ngIf="!author.avatar_url" class="mobile-avatar-initials">{{ initials }}</div>
+        </div>
+        <div class="mobile-meta-details">
+          <h1 class="mobile-display-name">{{ author.username }}</h1>
+          <p class="mobile-display-handle">{{ author.email }}</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mobile-actions-row" *ngIf="!isCurrentUser">
+        <button class="mobile-action-btn-follow" [class.active]="isFollowing" (click)="toggleFollow()">
+          <span class="btn-icon" *ngIf="isFollowing">✓</span>
+          {{ isFollowing ? 'Seguendo' : 'Segui' }}
+        </button>
+        <button *ngIf="isFollowing" class="mobile-action-btn-bell" [class.active]="notificationsEnabled" (click)="toggleNotifications()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="bell-icon-svg">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Bio Card Section -->
+      <div class="mobile-bio-section">
+        <p class="mobile-bio-text" *ngIf="author.bio">{{ author.bio }}</p>
+        <p class="mobile-bio-text missing" *ngIf="!author.bio">Questo autore preferisce mantenere un alone di mistero.</p>
+      </div>
+
+      <!-- Metrics Row -->
+      <div class="mobile-stats-grid">
+        <div class="mobile-stat-pill">
+          <span class="val">{{ stories.length || 0 }}</span>
+          <span class="lbl">Storie</span>
+        </div>
+        <div class="mobile-stat-pill">
+          <span class="val">{{ followersCount }}</span>
+          <span class="lbl">Follower</span>
+        </div>
+        <div class="mobile-stat-pill">
+          <span class="val">{{ followingCount }}</span>
+          <span class="lbl">Seguiti</span>
+        </div>
+      </div>
+
+      <!-- Social Links slider -->
+      <div class="mobile-socials-slider" *ngIf="author.social_instagram || author.social_twitter || author.social_facebook || author.social_website || author.social_tiktok || author.social_linkedin">
+        <div class="mobile-socials-track">
+          <a *ngIf="author.social_website" [href]="author.social_website" target="_blank" class="mobile-social-link-pill">Sito</a>
+          <a *ngIf="author.social_instagram" [href]="author.social_instagram" target="_blank" class="mobile-social-link-pill">Instagram</a>
+          <a *ngIf="author.social_twitter" [href]="author.social_twitter" target="_blank" class="mobile-social-link-pill">X</a>
+          <a *ngIf="author.social_tiktok" [href]="author.social_tiktok" target="_blank" class="mobile-social-link-pill">TikTok</a>
+          <a *ngIf="author.social_linkedin" [href]="author.social_linkedin" target="_blank" class="mobile-social-link-pill">LinkedIn</a>
+          <a *ngIf="author.social_facebook" [href]="author.social_facebook" target="_blank" class="mobile-social-link-pill">Facebook</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Segmented Tabs Navigation -->
+    <div class="mobile-navigation-bar">
+      <button class="mobile-nav-item" [class.active]="activeSubView === 'opere'" (click)="activeSubView = 'opere'">Opere</button>
+      <button class="mobile-nav-item" [class.active]="activeSubView === 'serie'" (click)="activeSubView = 'serie'">Serie</button>
+      <button class="mobile-nav-item" [class.active]="activeSubView === 'follower'" (click)="activeSubView = 'follower'">Follower</button>
+      <button class="mobile-nav-item" [class.active]="activeSubView === 'seguiti'" (click)="activeSubView = 'seguiti'">Seguiti</button>
+    </div>
+
+    <!-- Mobile Stream Content -->
+    <div class="mobile-stream-canvas-container">
+
+      <!-- OPERE MOBILE -->
+      <div *ngIf="activeSubView === 'opere'" class="mobile-tab-view-content">
+        <div class="mobile-sorting-container">
+          <div class="mobile-sorting-track">
+            <button *ngFor="let tab of tabs" class="mobile-sort-pill" [class.active]="activeTab === tab" (click)="setTab(tab)">{{ tab }}</button>
+          </div>
+        </div>
+
+        <div class="mobile-opere-grid" *ngIf="filteredStories.length > 0; else mobileNoStories">
+          <div class="mobile-opera-card glass-core" *ngFor="let book of displayedStories; let idx = index" [routerLink]="['/book', book.id]">
+            <div class="mobile-opera-cover-container">
+              <img [src]="book.image_url || book.img" [alt]="book.title" [loading]="idx < 4 ? 'eager' : 'lazy'" />
+              <div class="mobile-opera-spine-glow"></div>
+            </div>
+            <div class="mobile-opera-details">
+              <h4 class="mobile-opera-title">{{ book.title }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-load-more-wrapper" *ngIf="filteredStories.length > displayedStories.length">
+          <button class="mobile-load-more-btn" (click)="showMoreBooks()">Mostra altri</button>
+        </div>
+
+        <ng-template #mobileNoStories>
+          <div class="mobile-empty-panel glass-core">
+            <p>Nessuna storia trovata in questa categoria.</p>
+          </div>
+        </ng-template>
+
+        <!-- Consigliati Section -->
+        <div class="mobile-consigliati-section" *ngIf="recommendedBooks && recommendedBooks.length > 0">
+          <div class="mobile-hr-divider"></div>
+          <h3 class="mobile-consigliati-title">Letture consigliate da {{ author.username }}</h3>
+          
+          <div class="mobile-opere-grid">
+            <div class="mobile-opera-card glass-core" *ngFor="let book of recommendedBooks; let idx = index" [routerLink]="['/book', book.id]">
+              <div class="mobile-opera-cover-container">
+                <img [src]="book.img || book.image_url" [alt]="book.title" [loading]="idx < 4 ? 'eager' : 'lazy'" />
+                <div class="mobile-opera-spine-glow"></div>
+              </div>
+              <div class="mobile-opera-details">
+                <h4 class="mobile-opera-title">{{ book.title }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERIE MOBILE -->
+      <div *ngIf="activeSubView === 'serie'" class="mobile-tab-view-content">
+        <div class="mobile-series-wrapper" *ngIf="seriesList.length > 0; else mobileNoSeries">
+          <div class="mobile-series-group-card glass-core" *ngFor="let ser of seriesList">
+            <div class="mobile-series-heading">
+              <h3 class="mobile-series-title">{{ ser.name }}</h3>
+              <span class="mobile-series-count-tag">{{ ser.stories?.length || 0 }} libri</span>
+            </div>
+            <p class="mobile-series-description" *ngIf="ser.description">{{ ser.description }}</p>
+
+            <!-- Timeline Steps inside Series -->
+            <div class="mobile-series-journey">
+              <div class="mobile-series-line-connector"></div>
+              
+              <div class="mobile-series-step-node" *ngFor="let s of ser.stories" [routerLink]="['/book', asAny(s).id]">
+                <div class="mobile-step-bullet">
+                  <span>#{{ asAny(s).order_index }}</span>
+                </div>
+                <div class="mobile-step-card glass-core">
+                  <div class="mobile-step-cover">
+                    <img *ngIf="asAny(s).image_url" [src]="asAny(s).image_url">
+                    <div *ngIf="!asAny(s).image_url" class="mobile-step-placeholder">
+                      <span>{{ sliceTitle(asAny(s).title) | uppercase }}</span>
+                    </div>
+                  </div>
+                  <div class="mobile-step-info">
+                    <h4 class="mobile-step-title">{{ asAny(s).title }}</h4>
+                    <span class="mobile-step-action-label">Leggi opera ➔</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #mobileNoSeries>
+          <div class="mobile-empty-panel glass-core">
+            <p>Questo autore non ha ancora creato alcuna serie.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- FOLLOWER MOBILE -->
+      <div *ngIf="activeSubView === 'follower'" class="mobile-tab-view-content">
+        <div class="mobile-profiles-container" *ngIf="followersList.length > 0; else mobileNoFollowers">
+          <div class="mobile-profile-item-card glass-core" *ngFor="let follower of displayedFollowers" (click)="navigateToAuthor(follower.id)">
+            <div class="mobile-profile-item-header">
+              <div class="mobile-profile-item-avatar">
+                <img *ngIf="follower.avatar_url" [src]="follower.avatar_url" />
+                <span *ngIf="!follower.avatar_url">{{ follower.name?.slice(0, 2).toUpperCase() }}</span>
+              </div>
+              <div class="mobile-profile-item-meta">
+                <h4 class="mobile-profile-item-name">{{ follower.name }}</h4>
+                <p class="mobile-profile-item-handle">{{ follower.handle || follower.name }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-load-more-wrapper" *ngIf="followersList.length > displayedFollowers.length">
+          <button class="mobile-load-more-btn" (click)="showMoreFollowers()">Mostra altri</button>
+        </div>
+        <ng-template #mobileNoFollowers>
+          <div class="mobile-empty-panel glass-core">
+            <p>Ancora nessun follower.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- SEGUITI MOBILE -->
+      <div *ngIf="activeSubView === 'seguiti'" class="mobile-tab-view-content">
+        <div class="mobile-profiles-container" *ngIf="followingList.length > 0; else mobileNoFollowing">
+          <div class="mobile-profile-item-card glass-core" *ngFor="let followed of displayedFollowing" (click)="navigateToAuthor(followed.id)">
+            <div class="mobile-profile-item-header">
+              <div class="mobile-profile-item-avatar">
+                <img *ngIf="followed.avatar_url" [src]="followed.avatar_url" />
+                <span *ngIf="!followed.avatar_url">{{ followed.name?.slice(0, 2).toUpperCase() }}</span>
+              </div>
+              <div class="mobile-profile-item-meta">
+                <h4 class="mobile-profile-item-name">{{ followed.name }}</h4>
+                <p class="mobile-profile-item-handle">{{ followed.handle || followed.name }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-load-more-wrapper" *ngIf="followingList.length > displayedFollowing.length">
+          <button class="mobile-load-more-btn" (click)="showMoreFollowing()">Mostra altri</button>
+        </div>
+        <ng-template #mobileNoFollowing>
+          <div class="mobile-empty-panel glass-core">
+            <p>Questo autore non segue ancora nessuno.</p>
+          </div>
+        </ng-template>
+      </div>
+
+    </div>
 
   </div>
 </div>

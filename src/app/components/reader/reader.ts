@@ -113,7 +113,7 @@ export class Reader implements OnInit, OnDestroy {
 
   updateScrollPercent(pct: number) {
     const finalPct = Math.min(100, Math.max(0, pct));
-    
+
     // Only allow progress to increase (never decrease, unless reset by "Rileggi")
     const currentPct = this.scrollPercent();
     if (finalPct <= currentPct) {
@@ -1282,7 +1282,7 @@ export class Reader implements OnInit, OnDestroy {
 
     // Su mobile consideriamo come "fuori dal testo" qualsiasi click che non sia su un paragrafo
     const isInsideParagraph = target.closest('.reader-paragraph');
-    
+
     // Per mobile, perdere il focus significa cliccare fuori dai paragrafi
     const isLosingFocus = this.isTouchDevice()
       ? (!isInsideParagraph && !isInsidePanel && !isInsideDialog)

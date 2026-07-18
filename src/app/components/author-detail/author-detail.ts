@@ -31,6 +31,7 @@ export class AuthorDetail implements OnInit {
   authorId: string | null = null;
   author: any = null;
   stories: any[] = [];
+  seriesList: any[] = [];
 
   isFollowing = false;
   isCurrentUser = false;
@@ -50,7 +51,7 @@ export class AuthorDetail implements OnInit {
 
   recommendedBooks: any[] = [];
 
-  activeSubView: 'opere' | 'follower' | 'seguiti' = 'opere';
+  activeSubView: 'opere' | 'follower' | 'seguiti' | 'serie' = 'opere';
 
   get initials(): string {
     return this.author?.username?.slice(0, 2).toUpperCase() || 'AU';
@@ -162,6 +163,14 @@ export class AuthorDetail implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => console.error('Error fetching stories', err)
+      });
+
+      this.api.getAuthorSeries(this.authorId).subscribe({
+        next: (data) => {
+          this.seriesList = data;
+          this.cdr.detectChanges();
+        },
+        error: (err) => console.error('Error fetching author series', err)
       });
 
       this.api.getFollowsCount(this.authorId).subscribe({
@@ -300,5 +309,21 @@ export class AuthorDetail implements OnInit {
       this.loadAuthorData();
       this.router.navigate(['/author'], { state: { authorId } });
     }
+  }
+
+  goToAuthor(authorId: string | undefined, event?: Event) {
+    if (event) event.stopPropagation();
+    if (authorId) {
+      this.navigateToAuthor(authorId);
+    }
+  }
+
+  asAny(val: any): any {
+    return val;
+  }
+
+  sliceTitle(title: any): string {
+    if (!title || typeof title !== 'string') return '';
+    return title.slice(0, 2);
   }
 }
